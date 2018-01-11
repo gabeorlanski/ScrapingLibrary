@@ -14,7 +14,7 @@ from src.instructions import Instruction
 class TestInstruction(TestCase):
 	def setUp(self):
 		self.basic_html = open(os.getcwd()+r'\tests\instruction_test_html\basic_call.html').read()
-
+		self.complex_html = open(os.getcwd()+r'\tests\instruction_test_html\complex_tests.html').read()
 	def test_init(self):
 		test = Instruction("//div", "test_name", [Instruction("//a"), Instruction("//b")], True, {"test_attrib_key":"test_attrib"}, True)
 		self.assertEqual(test._raw, "//div")
@@ -48,14 +48,16 @@ class TestInstruction(TestCase):
 	def test_basic_call(self):
 		# TESTING BASIC INSTRUCTION
 		basic = Instruction("//p", "test",text=True)
-		returned, success = basic(self.basic_html)
+		success = basic(self.basic_html)
+		returned = basic.data()
 		self.assertTrue(success)
 		self.assertDictEqual(returned,{"test":"Test Basic"})
 
 	def test_no_results(self):
 		# TESTING NO RESULTS
 		nothing = Instruction("//div[@class='blah']","nothing")
-		returned,success = nothing(self.basic_html)
+		success = nothing(self.basic_html)
+		returned = nothing.data()
 		self.assertIsNone(returned)
 		self.assertFalse(success)
 
@@ -64,42 +66,53 @@ class TestInstruction(TestCase):
 		parent_a = Instruction("//div[@class='intro']","parent",text=True)
 		child_a = Instruction("./h1", "child", text=True)
 		parent_a.addChild(child_a)
-		rslt_a, success_a = parent_a(self.basic_html)
+		success_a = parent_a(self.basic_html)
+		rslt_a = parent_a.data()
 		self.assertTrue(success_a)
 		self.assertDictEqual(rslt_a,{'parent': 'Parent', 'child': 'Child'})
 
 	def test_child_no_result(self):
 		# TESTING CHILD NO RESULT
-		parent_b = Instruction("//div[@class='intro']","parent",text=True)
-		child_b = Instruction("./p", "child", text=True)
+		parent_b = Instruction("//h1[@class='intro']","parent",text=True)
+		child_b = Instruction("./div", "child", text=True)
 		parent_b.addChild(child_b)
-		rslt_b, success_b = parent_b(self.basic_html)
+		success_b = parent_b(self.basic_html)
+		rslt_b = parent_b.data()
 		self.assertTrue(success_b)
 		self.assertDictEqual(rslt_b, {'parent': 'Parent'})
 
 	def test_multi_element(self):
 		# TESTING MULTI ELEMENT
-		multi = Instruction("//div[@class='outro']","multi",text=True)
-		rslt_m, success_m = multi(self.basic_html)
+		multi = Instruction("//h1[@class='outro']","multi",text=True)
+		success_m = multi(self.basic_html)
+		rslt_m = multi.data()
 		self.assertTrue(success_m)
-		for i in range(len(rslt_m)):
-			self.assertDictEqual(rslt_m[i],{'multi': 'Multi Number '+str(i+1)})
+		self.assertDictEqual(rslt_m,{'multi_0': {'multi': 'Multi Number 1'}, 'multi_1': {'multi': 'Multi Number 2'}})
 
 	def test_attributes(self):
 		# TESTING ATTRIBUTES
 		attrib = Instruction("//a","attrib",attrib={'link':'href'})
-		rslt_c, success_c = attrib(self.basic_html)
+		success_c = attrib(self.basic_html)
+		rslt_c = attrib.data()
 		self.assertTrue(success_c)
 		self.assertDictEqual(rslt_c,{'link': 'www.reddit.com'})
 
 	def test_child_multi(self):
 		# TESTING MULTI CHILDREN
-		a = Instruction("//div[@class='outro']","parent", text=True)
-		b = Instruction("./h1[@class='child_multi']","child",text=True)
+		a = Instruction("//h1[@class='outro']","parent", text=True)
+		b = Instruction("./div[@class='child_multi']","child",text=True)
 		a.addChild(b)
-		rslt, worked = a(self.basic_html)
+		worked = a(self.basic_html)
+		rslt = a.data()
 		self.assertTrue(worked)
-		self.assertEqual(type(rslt),list)
-		self.assertDictEqual(rslt[0],{'parent': 'Multi Number 1', 'child': 'Child Number 1'})
-		self.assertDictEqual(rslt[1],{'parent': 'Multi Number 2', 'child': 'Child Number 2'})
+		self.assertEqual(type(rslt),dict)
+		self.assertDictEqual(rslt,{'parent_0': {'parent': 'Multi Number 1', 'child_0': {'child': 'Child Number 1'}, 'child_1': {'child': 'Child Number 1 2'}}, 'parent_1': {'parent': 'Multi Number 2', 'child': 'Child Number 2'}})
 
+	def test_nested_child(self):
+		a = Instruction("//div[@class='nested_children']","parent", text=True)
+		b = Instruction("//h1[@class='nested_children']","child", text=True)
+		c = Instruction("//p[@class='nested_children']","sub_child", text=True)
+		b.addChild(c)
+		a.addChild(b)
+		self.assertTrue(a(self.complex_html))
+		self.assertDictEqual(a.data(),{'parent': 'Parent', 'child': 'Child', 'sub_child': 'Sub Child'})

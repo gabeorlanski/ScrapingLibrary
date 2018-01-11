@@ -1,37 +1,27 @@
 <html>
 <style>
-    div.intro {
-        color: blue;
-    }
-
-    div.outro {
+    .parent {
+        font-size: 32;
         color: red;
     }
 
-    h1.important {
-        color: green;
-    }
-
-    h1.child_multi {
-        color: yellow;
+    .child {
+        font-size: 24;
+        color: black;
     }
 </style>
 </head>
 <body>
-<p>Test Basic</p>
-<div class="intro">
-    Parent
-    <h1 class="important">Child</h1>
+<p class="step_1">&lt;p>Test Basic&lt;/p>
+<div class="parent"> Parent
+    <div class="child">Child</div>
 </div>
-<div class="outro">
-    Multi Number 1
-    <h1 class="child_multi">Child Number 1</h1>
+<div class="parent"> Multi Number 1
+    <div class="child">Child Number 1</div>
+    <div class="child">Child Number 1 2</div>
 </div>
-<div class="outro">
-    Multi Number 2
-    <h1 class="child_multi">Child Number 2</h1>
+<div class="parent"> Multi Number 2
+    <div class="child">Child Number 2</div>
 </div>
-<a href="www.reddit.com"></a>
-</body>
-
+<a href="www.reddit.com"></a></body>
 </html>

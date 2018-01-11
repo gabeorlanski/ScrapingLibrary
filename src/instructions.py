@@ -1,10 +1,14 @@
 from lxml import etree
 from io import StringIO
+import os
+import sys
+if r'\src' in os.getcwd():
+	sys.path.insert(0, os.path.normpath(os.getcwd() + os.sep + os.pardir))
+	os.chdir(os.path.normpath(os.getcwd() + os.sep + os.pardir))
 """
-#Wrapper for xpath commands that allows the user to easily use xpaths
+Wrapper for xpath commands that allows the user to easily use xpaths
 """
-
-
+basic_html = open(os.getcwd()+r'\tests\instruction_test_html\basic_call.html').read()
 class Instruction:
 	# NEVER MODIFY THESE VARIABLES OUTSIDE OF MEMBER FUNCTIONS!
 	_name = None
@@ -14,11 +18,13 @@ class Instruction:
 	_text = False
 	_attrib = None
 	_getdata = False
+	_id = None
+	_data = None
 
 	parser = None
 	context = None
 
-	def __init__(self, path, name=None, children=None, text=False, attrib=None, get_data=False):
+	def __init__(self, path, name=None, children=None, text=False, attrib=None, get_data=False, key=None):
 		"""
 		:param path: The XPATH as a string
 		:type path: str
@@ -32,6 +38,8 @@ class Instruction:
 		:type attrib: [{name:attribute}]
 		:param get_data: If this Instruction has data you want to get
 		:type get_data: bool
+		:param key: the key that the parent will see this instruction as
+		:type key: Whatever data type you want to use as an id
 		"""
 		self._raw = path
 		self._xpath = etree.XPath(self._raw)
@@ -47,6 +55,7 @@ class Instruction:
 			self._attrib = {}
 
 		self._getdata = get_data
+		self._key = key
 
 	def _debug(self):
 		print("-- DEBUGGING --")
@@ -64,13 +73,15 @@ class Instruction:
 		return self._name
 
 	def _retrieveData(self,elem):
+		# TODO: switch this to return a key if need be
 		rtr_dict = dict()
 		if self._text:
 			rtr_dict[self._name] = elem.text.strip()
 		for a in self._attrib.keys():
 			rtr_dict[a] = elem.attrib[self._attrib[a]]
 		for c in self._children:
-			a, success = c(elem)
+			success = c(elem)
+			a = c.data()
 			if success:
 				rtr_dict = {**rtr_dict, **a}
 		return rtr_dict
@@ -84,26 +95,48 @@ class Instruction:
 			context_use = context
 
 		result = self._xpath(context_use)
-
+		print("".join("-"))
+		print("NAME: " + self._name)
+		for i in result:
+			if type(context) == str:
+				original = context
+			else:
+				original = ""
+			print(etree.tostring(i, pretty_print=True, method='xml').decode('utf-8').strip())
+			print(basic_html.find(etree.tostring(i, pretty_print=True, method='xml').decode('utf-8').strip()))
 		# If there is no results, return false
 		if len(result) == 0:
-			return None, False
+			return False
 
 		if len(result) == 1:
 			result_single = result[0]
 			rtr_dict = self._retrieveData(result_single)
-			return rtr_dict, True
+			self._data = rtr_dict
+			return True
 
-		answer = [None for i in result]
+		# Create a dict of the results
+		# TODO: Switch this from list format to a dict format
+		answer = {}
 		for i, j in zip(result, range(len(result))):
 			info_dict = self._retrieveData(i)
-			answer[j] = info_dict
+			answer[self._name+"_"+str(j)] = info_dict
 
-			# for c in self._children:
-		return answer, True
+		self._data = answer
+		return True
+
+	def key(self):
+		return self._key
+
+	def data(self):
+		return self._data
 
 
-
-
-
-
+if __name__ == '__main__':
+	basic_html = open(os.getcwd() + r'\tests\instruction_test_html\basic_call.html').read()
+	# TESTING MULTI CHILDREN
+	a = Instruction("//div[@class='outro']", "parent", text=True)
+	b = Instruction("./h1[@class='child_multi']", "child", text=True)
+	a.addChild(b)
+	worked = a(basic_html)
+	rslt = a.data()
+	print(rslt)
