@@ -1,27 +1,36 @@
 <html>
 <style>
-    .parent {
+    .single_parent{
+        font-size: 32;
+        color: black;
+    }
+    .single_child{
+       font-size: 24;
+        color: grey;
+    }
+    .multi_parent {
         font-size: 32;
         color: red;
     }
 
-    .child {
+    .multi_child {
         font-size: 24;
-        color: black;
+        color: orange;
     }
+
 </style>
 </head>
 <body>
 <p class="step_1">&lt;p>Test Basic&lt;/p>
-<div class="parent"> Parent
-    <div class="child">Child</div>
+<div class="single_parent"> Parent
+    <div class="single_child">Child</div>
 </div>
-<div class="parent"> Multi Number 1
-    <div class="child">Child Number 1</div>
-    <div class="child">Child Number 1 2</div>
+<div class="multi_parent"> Multi Number 1
+    <div class="multi_child">Child Number 1</div>
+    <div class="multi_child">Child Number 1 2</div>
 </div>
-<div class="parent"> Multi Number 2
-    <div class="child">Child Number 2</div>
+<div class="multi_parent"> Multi Number 2
+    <div class="multi_child">Child Number 2</div>
 </div>
 <a href="www.reddit.com"></a></body>
 </html>
