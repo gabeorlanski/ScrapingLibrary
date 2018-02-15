@@ -146,7 +146,6 @@ class Instruction:
             if len(result) == 0:
                 return False
 
-
         if self._debug:
             for i in result:
                 print(etree.tostring(i, pretty_print=True, method='xml').decode('utf-8').strip())
@@ -206,12 +205,3 @@ class Instruction:
         return rtr
 
 
-if __name__ == '__main__':
-    basic_html = open(os.getcwd() + r'\tests\instruction_test_html\basic_call.html').read()
-    # TESTING MULTI CHILDREN
-    parent_a = Instruction("//div[@class='single_parent']", "parent", text=True)
-    child_a = Instruction("./div[@class='single_child']", "child", text=True)
-    parent_a.addChild(child_a)
-    success_a = parent_a(basic_html)
-    rslt_a = parent_a.data()
-    print(parent_a.get_format())
