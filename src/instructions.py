@@ -27,16 +27,18 @@ class Instruction:
     _numresults = 0
     _backups = None
     _backupsraw = None
-    parser = None
+    _optionsdict = {}
+    parser = etree.HTMLParser(encoding="utf-8")
     context = None
 
-    def __init__(self, path, name=None, children=None, text=False, attrib=None, get_data=False, key=None, debug=False, backup_xpaths=[]):
+
+    def __init__(self, xpath, name=None, children=None, text=False, attrib=None, get_data=False, key=None, debug=False, backup_xpaths=[]):
         """
-        :param path: The XPATH as a string
-        :type path: str
+        :param xpath: The XPATH as a string
+        :type xpath: str
         :param name: The name of this instruction
         :type name: str
-        :param children: List of instructions to be executed on the result of this command
+        :param children: Either a List of instructions, or a list of dicts that have keys: name, xpath(path), children(list of these dictionaries),options(all of the arguments for __init__ that are not explicit keys of this dictionary)
         :type children: [Instruction]
         :param text: If you need to get the text of the result of the xpath
         :type text: bool
@@ -51,14 +53,19 @@ class Instruction:
         :param backup_xpaths: Any backup xpath to get the same data to deal with any changes in the html from page to page
         :type backup_xpaths: [str]
         """
-        self._raw = path
+        self._raw = xpath
         self._xpath = etree.XPath(self._raw)
         self._name = name
-        if children is not None:
-            self._children = children
+        if children is not None and len(children) != 0:
+            if type(children[0]) == dict:
+                for i in children:
+                    self._children.append(Instruction(**i))
+            else:
+                self._children = children
         else:
             self._children = []
         self._text = text
+
         if attrib is not None:
             self._attrib = attrib
         else:
@@ -72,6 +79,40 @@ class Instruction:
             self._backups = []
             for i in self._backupsraw:
                 self._backups.append(etree.XPath(i))
+
+        # Options dict handling
+        opts = dict()
+
+        if text:
+            opts["text"] = text
+
+        if attrib is not None:
+            opts['attrib'] = attrib
+
+        if get_data:
+            opts['get_data'] = get_data
+
+        if key is not None:
+            opts['key'] = key
+
+        if debug:
+            opts['debug'] = debug
+
+        if len(backup_xpaths) != 0:
+            opts['backup_xpaths'] = backup_xpaths
+
+        self._optionsdict = opts
+
+    def debug_print(self):
+        """
+
+        :rtype: None
+        """
+        print("-- DEBUGGING --")
+        print("NAME: " + self._name)
+        print("XPATH: " + self._raw)
+        print("len(_CHILDREN): " + str(len(self._children)))
+
 
     def debug_print(self):
         """
@@ -96,13 +137,15 @@ class Instruction:
 
         rtr_dict = dict()
         if self._text:
-            rtr_dict[self._name] = elem.text.strip()
+            try:
+                rtr_dict[self._name] = etree.tostring(elem, method="text").decode().strip()
+            except:
+                rtr_dict[self._name] = "ELEM_MEMBER_TEXT_NONE"
         for a in self._attrib.keys():
             rtr_dict[a] = elem.attrib[self._attrib[a]]
         c_data = []
         for c in self._children:
-            success = c(elem)
-            a = c.data()
+            success, a = c(elem)
 
             if success:
                 c_data.append(a)
@@ -113,16 +156,20 @@ class Instruction:
         rtr_dict["children"] = c_data
         return rtr_dict
 
-    def __call__(self, context):
+    def __call__(self, c_text):
+        context = c_text
         if type(context) == str:
-            parser = etree.HTMLParser(encoding="utf-8")
-            context_use = etree.parse(StringIO(context), parser=parser)
+
+            context_use = etree.parse(StringIO(context), parser=self.parser)
         else:
             context_use = context
 
         # Get the results from the xpath
-        result = self._xpath(context_use)
-        self._numresults = len(result)
+        try:
+            result = self._xpath(context_use)
+        except Exception as e :
+            pass
+        _numresults = len(result)
 
         # Debugging stuff
         if self._debug:
@@ -132,7 +179,7 @@ class Instruction:
         # If there are no results, try backups. If that fails, return false
         if len(result) == 0:
             if not self._backups:
-                return False
+                return False, None
 
             # Iterate through backups until either a result is found, or  it reaches the end
             backup_iter = iter(self._backups)
@@ -140,11 +187,11 @@ class Instruction:
                 try:
                     backup = next(backup_iter)
                 except:
-                    return False
+                    return False, None
 
                 result = backup(context_use)
             if len(result) == 0:
-                return False
+                return False, None
 
         if self._debug:
             for i in result:
@@ -155,8 +202,7 @@ class Instruction:
         if len(result) == 1:
             result_single = result[0]
             data["result_1"] = self._retrieveData(result_single)
-            self._data = data
-            return True
+            return True, data
 
         # Create a dict of the results
         # TODO: Switch this from list format to a dict format
@@ -165,17 +211,16 @@ class Instruction:
             info_dict = self._retrieveData(i)
             data["result_" + str(j + 1)] = info_dict
 
-        self._data = data
-        return True
+        return True,data
 
     def key(self):
         return self._key
 
-    def data(self, minimal=True):
-        if minimal:
-            return self._data
-
-        return dict(num_results=self._numresults, xpath=self._raw, name=self._name, data=self._data)
+    # def data(self, minimal=True):
+    #     if minimal:
+    #         return self._data
+    #
+    #     return dict(num_results=_numresults, xpath=self._raw, name=self._name, data=self._data)
 
     def get_format(self, minimal=True):
         """
@@ -204,4 +249,75 @@ class Instruction:
             return dict(result_1=result_data)
         return rtr
 
+    def __eq__(self, other):
+        if self._name != other._name:
+            return False
 
+        if self._raw != other._raw:
+            return False
+
+        if self._children != other._children:
+            return False
+
+        if self._text != other._text:
+            return False
+
+        if self._attrib != other._attrib:
+            return False
+
+        if self._id != other._id:
+            return False
+
+        if self._backups != other._backups:
+            return False
+
+        if self._getdata != other._getdata:
+            return False
+
+        return True
+
+    def __ne__(self, other):
+        if self == other:
+            return False
+        return True
+
+    def get_init_dict(self):
+        rtr = {"name":self._name, "xpath":self._raw, "children":[]}
+
+        for c in self._children:
+            rtr['children'].append(c.get_init_dict())
+
+        rtr = {**rtr,**self._optionsdict}
+
+        return rtr
+
+
+def generate_instruction_dict(xpath, name=None, children=None, text=False, attrib=None, get_data=False, key=None, debug=False, backup_xpaths=[]):
+    opts = dict()
+
+    if text:
+        opts["text"] = text
+
+    if attrib is not None:
+        opts['attrib'] = attrib
+
+    if get_data:
+        opts['get_data'] = get_data
+
+    if key is not None:
+        opts['key'] = key
+
+    if debug:
+        opts['debug'] = debug
+
+    if len(backup_xpaths) != 0:
+        opts['backup_xpaths'] = backup_xpaths
+
+    rtr = {"name": name, "xpath": xpath, "children": []}
+    if children:
+        for c in children:
+            rtr['children'].append(c)
+
+    rtr = {**rtr, **opts}
+
+    return rtr

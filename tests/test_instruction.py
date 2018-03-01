@@ -49,16 +49,14 @@ class TestInstruction(TestCase):
     def test_basic_call(self):
         # TESTING BASIC INSTRUCTION
         basic = Instruction("//p", "test", text=True)
-        success = basic(self.basic_html)
-        returned = basic.data()
+        success, returned= basic(self.basic_html)
         self.assertTrue(success)
         self.assertDictEqual(returned, {'result_1': {'test': '<p>Test Basic</p>', 'num_children': 0, 'children': []}})
 
     def test_no_results(self):
         # TESTING NO RESULTS
         nothing = Instruction("//div[@class='blah']", "nothing")
-        success = nothing(self.basic_html)
-        returned = nothing.data()
+        success,returned = nothing(self.basic_html)
         self.assertIsNone(returned)
         self.assertFalse(success)
 
@@ -67,8 +65,7 @@ class TestInstruction(TestCase):
         parent_a = Instruction("//div[@class='single_parent']", "parent", text=True)
         child_a = Instruction("./div[@class='single_child']", "child", text=True)
         parent_a.addChild(child_a)
-        success_a = parent_a(self.basic_html)
-        rslt_a = parent_a.data()
+        success_a,rslt_a = parent_a(self.basic_html)
         self.assertTrue(success_a)
         self.assertDictEqual(parent_a.get_format(),
                              {'result_1': {'parent': 'Text data', 'num_children': 1, 'children': [{'result_1': {'child': 'Text data'}}]}})
@@ -81,8 +78,7 @@ class TestInstruction(TestCase):
         parent_b = Instruction("//div[@class='single_parent']", "parent", text=True)
         child_b = Instruction("./h1", "child", text=True)
         parent_b.addChild(child_b)
-        success_b = parent_b(self.basic_html)
-        rslt_b = parent_b.data()
+        success_b,rslt_b= parent_b(self.basic_html)
         self.assertTrue(success_b)
         self.assertDictEqual(rslt_b, {
             'result_1': {
@@ -93,8 +89,7 @@ class TestInstruction(TestCase):
     def test_multi_element(self):
         # TESTING MULTI ELEMENT
         multi = Instruction("//div[@class='multi_parent']", "multi", text=True)
-        success_m = multi(self.basic_html)
-        rslt_m = multi.data()
+        success_m,rslt_m = multi(self.basic_html)
         self.assertTrue(success_m)
         self.assertDictEqual(rslt_m, {
             'result_1': {'children': [], 'multi': 'Multi Number 1', 'num_children': 0},
@@ -104,8 +99,7 @@ class TestInstruction(TestCase):
     def test_attributes(self):
         # TESTING ATTRIBUTES
         attrib = Instruction("//a", "attrib", attrib={'link': 'href'})
-        success_c = attrib(self.basic_html)
-        rslt_c = attrib.data()
+        success_c,rslt_c = attrib(self.basic_html)
         self.assertTrue(success_c)
         self.assertDictEqual(rslt_c, {'result_1': {'link': 'www.reddit.com', 'children': [], 'num_children': 0}})
 
@@ -114,8 +108,7 @@ class TestInstruction(TestCase):
         a = Instruction("//div[@class='multi_parent']", "parent", text=True)
         b = Instruction("./div[@class='multi_child']", "child", text=True)
         a.addChild(b)
-        worked = a(self.basic_html)
-        rslt = a.data()
+        worked,rslt = a(self.basic_html)
         self.assertTrue(worked)
         self.assertEqual(type(rslt), dict)
         self.assertDictEqual(rslt, {
@@ -136,8 +129,9 @@ class TestInstruction(TestCase):
         c = Instruction("//p[@class='nested_children']", "sub_child", text=True)
         b.addChild(c)
         a.addChild(b)
-        self.assertTrue(a(self.complex_html))
-        self.assertDictEqual(a.data(), {
+        worked, returned =a(self.complex_html)
+        self.assertTrue(worked)
+        self.assertDictEqual(returned, {
             'result_1': {
                 'children'  : [{
                     'result_1': {
@@ -150,8 +144,7 @@ class TestInstruction(TestCase):
     def test_backup(self):
         # TESTING BASIC INSTRUCTION
         basic = Instruction("//div[@class='test']", "test", text=True, backup_xpaths=["//p"])
-        success = basic(self.basic_html)
-        returned = basic.data()
+        success,returned= basic(self.basic_html)
         self.assertTrue(success)
         self.assertDictEqual(returned, {'result_1': {'test': '<p>Test Basic</p>', 'num_children': 0, 'children': []}})
 
@@ -160,8 +153,7 @@ class TestInstruction(TestCase):
         a = Instruction("//div[@class='doesnotexist']", "parent", text=True, backup_xpaths=["//div[@class='multi_parent']"])
         b = Instruction("//div[@class='test2iguess']", "child", text=True, backup_xpaths=["./div[@class='multi_child']"])
         a.addChild(b)
-        worked = a(self.basic_html)
-        rslt = a.data()
+        worked, rslt= a(self.basic_html)
         self.assertTrue(worked)
         self.assertEqual(type(rslt), dict)
         self.assertDictEqual(rslt, {
