@@ -4,7 +4,7 @@ from tornado import gen, ioloop
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 from tornado.queues import Queue
 import time
-import httputil
+from tornado import httputil
 
 
 class AsyncRequester():
