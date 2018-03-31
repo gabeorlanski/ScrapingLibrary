@@ -24,6 +24,6 @@ class TestScraper(TestCase):
 
         scraper.addInstructions(xpaths)
 
-        self.assertDictEqual(scraper._instructions[0].get_init_dict(),{"name":"Basic_Test", "raw":"//div", "children":[],"options":{}})
-        self.assertDictEqual(scraper._instructions[1].get_init_dict(),{"name":"Child_Test", "raw":"//div", "children":[{"name":"Basic_Child", "raw":"//div", "children":[],"options":{}}],"options":{}})
-        self.assertDictEqual(scraper._instructions[2].get_init_dict(),{"name": "Options_Test", "raw": "//div", "children": [], "options": {"text":True}})
+        self.assertDictEqual(scraper._instruction_sets[0].get_init_dict(), {"name": "Basic_Test", "raw": "//div", "children":[], "options":{}})
+        self.assertDictEqual(scraper._instruction_sets[1].get_init_dict(), {"name": "Child_Test", "raw": "//div", "children":[{"name": "Basic_Child", "raw": "//div", "children":[], "options":{}}], "options":{}})
+        self.assertDictEqual(scraper._instruction_sets[2].get_init_dict(), {"name": "Options_Test", "raw": "//div", "children": [], "options": {"text":True}})
