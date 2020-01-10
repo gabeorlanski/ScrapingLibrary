@@ -45,7 +45,7 @@ class ContinuousRequester(mp.Process):
             key, data, instruction_set = next_task
 
             if self._debug:
-                print(self._id + " received data for key: '" + str(key) + "'. Applying instructions to the data...")
+                print(self._id + " received data for key: '" + str(key) + "'. Applying getListings to the data...")
 
             if stop_triggered:
                 self._processed.put([key, data, instruction_set])

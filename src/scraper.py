@@ -3,7 +3,7 @@ import sys
 import os
 import json
 from collections import defaultdict
-from time import sleep
+from time import sleep, time
 if r'\src' in os.getcwd() or r'\src' in os.getcwd():
     sys.path.insert(0, os.path.normpath(os.getcwd() + os.sep + os.pardir))
     os.chdir(os.path.normpath(os.getcwd() + os.sep + os.pardir))
@@ -52,7 +52,13 @@ class Scraper:
     _backuplinks = []
     _continuous_adding = False
 
-    def __init__(self, cores=1, debug=False, continuous_adding=False):
+    def __init__(self, cores=1, debug=False, continuous_adding=False, apply_functions=None):
+        if apply_functions is None or type(apply_functions) is not list:
+            apply_functions = []
+
+
+
+        self.apply_functions = apply_functions
         self._cores = cores
         self._debug = debug
         self._continuous_adding = continuous_adding
@@ -71,7 +77,7 @@ class Scraper:
         if len(instr) == 0:
             raise ValueError("Paths was passed an empty list")
         if type(instr[0]) != dict and type(instr[0]) != Instruction:
-            raise TypeError("Expected instr to be a list of dicts or instructions, got instead " + str(type(instr)) + " of " + str(type(instr[0])))
+            raise TypeError("Expected instr to be a list of dicts or getListings, got instead " + str(type(instr)) + " of " + str(type(instr[0])))
         if type(instr[0]) == dict:
             dict_constructor = True
         else:
@@ -130,7 +136,12 @@ class Scraper:
         links_with_set = {}
         for d in self._links:
             links_with_set[d["dictKey"]] = {"instructionSet": d["instructionSet"], "link": d["url"]}
-        page_data = asyncrequester.Scraper(request_params=self._links).return_results()
+        start = time()
+        page_data = asyncrequester.Scraper(request_params=self._links,sleep=.02,max_clients=50).return_results()
+        end = time()
+        print("{0:02f} requests/s".format(len(links)/(end-start)))
+        #for data_key in range(len(page_data)):
+
         q = mp.JoinableQueue()
         r = mp.JoinableQueue()
         # p = mp.JoinableQueue()
@@ -141,7 +152,7 @@ class Scraper:
         # if not self._continuous_adding:
         workers = self._cores
 
-        # else:
+        # else:d
         #     if self._cores == 1:
         #         raise ValueError("cores cannot must be > 1 when continuous_adding is True")
         #     workers = self._cores - 1
@@ -160,24 +171,36 @@ class Scraper:
         if self._debug:
             print("Number of pages in page_data: " + str(len(page_data)))
         print("Putting page data into queue...")
+
+        error_links = {}
         for data_key in range(len(page_data)):
-            # import io
-            # with io.open(page_data[data_key]["key"]+".html", "w", encoding="utf-8") as f:
+            import io
+            # with io.open(os.getcwd() + r'\htmls\\' + page_data[data_key]["key"] + ".html", "w", encoding="utf-8") as f:
             #     print("DELETE THE WRITING OF EVERY HTML PAGE!!!")
-            #     f.write(str(page_data[data_key]['response']))
+            #     f.write(page_data[data_key]['response'].decode().replace("\n", "").replace("\t", ""))
             k = page_data[data_key]["key"]
-            d = page_data[data_key]['response'].decode()
-            q.put([k, d, links_with_set[k]["instructionSet"], links_with_set[k]["link"]])
+
+            try:
+                d = page_data[data_key]['response'].decode()
+                for f in self.apply_functions:
+                    d = f(d)
+
+                q.put([k, d, links_with_set[k]["instructionSet"], links_with_set[k]["link"]])
+            except Exception as e:
+                error_links[k] = {"link":links_with_set[k]["link"],"error":str(e),"response":page_data[data_key]['response']}
+
         if self._debug:
             print("Putting poison pill into the workers' queue")
 
         for c in consumers:
             q.put(None)
 
-
         q.join()
-
-
+        if self._debug:
+            print("{} links had errors".format(len(error_links)))
+            print("Writing links that had errors to problem_links.json...")
+        with open("problem_links.json","w") as f:
+            json.dump(error_links, f, indent=4, sort_keys=True)
         result_data = {}
         if self._debug:
             print("Retrieving results from the result queue")
@@ -196,17 +219,14 @@ class Scraper:
             # tmp[k] = {}
             # for i in d:
             # 	tmp[k][i[0]] = i[1]
-            tmp_dict_data = {}
-            for k in d:
-                try:
-                    tmp_dict_data[k["name"]] = {**k["data"], "num_results": len(list(k["data"].keys()))}
-                except:
-                    pass
+            tmp_dict_data = d
             if tmp_dict_data:
                 result_data[key] = tmp_dict_data
 
         with open("test_data.json", 'w') as fp:
             json.dump(result_data, fp, indent=4, sort_keys=True)
+        print("Wrote Data To test_data.json")
+        return 0
 
     def continuous_params(self, rules, stop_conditions, threshold=1):
         self._rules_dict = rules

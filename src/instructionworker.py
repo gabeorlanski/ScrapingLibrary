@@ -25,6 +25,7 @@ class InstructionWorker(mp.Process):
         for k in self.instructions_dict.keys():
             for i in self.instructions_dict[k]:
                 instructions[k].append(Instruction(**i))
+
         while True:
 
             next_task = self.task_queue.get()
@@ -37,18 +38,20 @@ class InstructionWorker(mp.Process):
                 self.task_queue.task_done()
                 break
             key, data, instruct_set,link = next_task
+            instructions_init_dicts = {i.getName(): i.get_init_dict(True) for i in instructions[instruct_set]}
             if self._debug:
-                print(self._id + " received data for key: '" + str(key) + "'. Applying instructions to the data...")
+                print(self._id + " received data for key: '" + str(key) + "'. Applying getListings to the data...")
 
-            # Apply the instructions onto the data from the queue
+            # Apply the getListings onto the data from the queue
             if not self.testing:
-                result = [None for i in instructions[instruct_set]]
+                result = {"metadata":{"link":link, "instructions_applied":instructions_init_dicts,"data_keys":self.find_data_keys(instructions_init_dicts)}}
                 for i in range(len(instructions[instruct_set])):
-                    rtr = instructions[instruct_set][i](data)
+
+                    rtr = instructions[instruct_set][i](data,key)
+
                     try:
-                        result[i] = {
-                            "name": instructions[instruct_set][i].getName(), 'data': rtr[1],"link":link
-                        }
+                        result["metadata"][instructions[instruct_set][i].getName()+"_resultcount"] = len(rtr[1].keys())
+                        result[instructions[instruct_set][i].getName()] = rtr[1]
                     except Exception as e:
                         if self._debug:
                             print(self._id + " ran into Exception '{}' when trying to apply instruction {} to {}".format(str(e),
@@ -61,3 +64,25 @@ class InstructionWorker(mp.Process):
                 print(self._id + " putting the results into the result queue...")
             self.result_queue.put([key, result,instruct_set])
             self.task_queue.task_done()
+
+    def find_data_keys(self,i):
+        rtr = {}
+        for istr in i.keys():
+            keys = []
+            has_data = False
+            has_text =False
+            if "attrib" in i[istr]:
+                has_data = True
+                for a in i[istr]["attrib"].keys():
+                    keys.append(a)
+            if "text" in i[istr]:
+                has_data = True
+                has_text = True
+            children = {}
+            if i[istr]["children"]:
+                children = self.find_data_keys(i[istr]["children"])
+            if children:
+                has_data = True
+            if has_data:
+                rtr[istr] = {"keys":keys,"children":children,"text":has_text}
+        return rtr

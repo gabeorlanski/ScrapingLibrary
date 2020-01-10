@@ -4,17 +4,21 @@ import os
 from lxml import etree
 from io import StringIO
 
+
 if r'\tests' in os.getcwd():
     sys.path.insert(0, os.path.normpath(os.getcwd() + os.sep + os.pardir))
     os.chdir(os.path.normpath(os.getcwd() + os.sep + os.pardir))
 
-from src.instructions import Instruction
+from src.instructions import *
 
 
 class TestInstruction(TestCase):
     def setUp(self):
+        import pprint
+        self.pp = pprint.PrettyPrinter(indent=4)
         self.basic_html = open(os.getcwd() + r'\tests\instruction_test_html\basic_call.html').read()
         self.complex_html = open(os.getcwd() + r'\tests\instruction_test_html\complex_tests.html').read()
+        self.maxDiff = None
 
     def test_init(self):
         test = Instruction("//div", "test_name", [Instruction("//a"), Instruction("//b")], True, {"test_attrib_key": "test_attrib"}, True)
@@ -69,8 +73,9 @@ class TestInstruction(TestCase):
         self.assertTrue(success_a)
         self.assertDictEqual(parent_a.get_format(),
                              {'result_1': {'parent': 'Text data', 'num_children': 1, 'children': [{'result_1': {'child': 'Text data'}}]}})
+
         self.assertDictEqual(rslt_a, {
-            'result_1': {'children': [{'result_1': {'children': [], 'child': 'Child', 'num_children': 0}}], 'parent': 'Parent', 'num_children': 1}
+            'result_1': {'children': [{'child_1': {'children': [], 'child': 'Child', 'num_children': 0}}], 'parent': 'Parent', 'num_children': 1}
         })
 
     def test_child_no_result(self):
@@ -109,24 +114,25 @@ class TestInstruction(TestCase):
         b = Instruction("./div[@class='multi_child']", "child", text=True)
         a.addChild(b)
         worked,rslt = a(self.basic_html)
+
         self.assertTrue(worked)
         self.assertEqual(type(rslt), dict)
         self.assertDictEqual(rslt, {
             'result_2'   : {
-                'children': [{'result_1': {'children': [], 'child': 'Child Number 2', 'num_children': 0}}], 'num_children': 1,
+                'children': [{'child_1': {'children': [], 'child': 'Child Number 2', 'num_children': 0}}], 'num_children': 1,
                 'parent'  : 'Multi Number 2'
             }, 'result_1': {
                 'children'        : [{
-                    'result_2': {'children': [], 'child': 'Child Number 1 2', 'num_children': 0},
-                    'result_1': {'children': [], 'child': 'Child Number 1', 'num_children': 0}
+                    'child_2': {'children': [], 'child': 'Child Number 1 2', 'num_children': 0},
+                    'child_1': {'children': [], 'child': 'Child Number 1', 'num_children': 0}
                 }], 'num_children': 1, 'parent': 'Multi Number 1'
             }
         })
 
     def test_nested_child(self):
         a = Instruction("//div[@class='nested_children']", "parent", text=True)
-        b = Instruction("//h1[@class='nested_children']", "child", text=True)
-        c = Instruction("//p[@class='nested_children']", "sub_child", text=True)
+        b = Instruction("//div[@class='nested_child']", "child", text=True)
+        c = Instruction("//p[@class='nested_child']", "sub_child", text=True)
         b.addChild(c)
         a.addChild(b)
         worked, returned =a(self.complex_html)
@@ -134,8 +140,9 @@ class TestInstruction(TestCase):
         self.assertDictEqual(returned, {
             'result_1': {
                 'children'  : [{
-                    'result_1': {
-                        'children': [{'result_1': {'sub_child': 'Sub Child', 'children': [], 'num_children': 0}}], 'child': 'Child', 'num_children': 1
+                    'child_1': {
+                        'children': [{'sub_child_1': {'sub_child': 'Sub Child', 'children': [], 'num_children': 0}}], 'child': 'Child',
+                        'num_children': 1
                     }
                 }], 'parent': 'Parent', 'num_children': 1
             }
@@ -158,12 +165,42 @@ class TestInstruction(TestCase):
         self.assertEqual(type(rslt), dict)
         self.assertDictEqual(rslt, {
             'result_2'   : {
-                'children': [{'result_1': {'children': [], 'child': 'Child Number 2', 'num_children': 0}}], 'num_children': 1,
+                'children': [{'child_1': {'children': [], 'child': 'Child Number 2', 'num_children': 0}}], 'num_children': 1,
                 'parent'  : 'Multi Number 2'
             }, 'result_1': {
                 'children'        : [{
-                    'result_2': {'children': [], 'child': 'Child Number 1 2', 'num_children': 0},
-                    'result_1': {'children': [], 'child': 'Child Number 1', 'num_children': 0}
+                    'child_2': {'children': [], 'child': 'Child Number 1 2', 'num_children': 0},
+                    'child_1': {'children': [], 'child': 'Child Number 1', 'num_children': 0}
                 }], 'num_children': 1, 'parent': 'Multi Number 1'
+            }
+        })
+
+    def test_dict_generator_nestedchild(self):
+        # c is the child of b which is the child of b
+        c = generate_instruction_dict("./p[@class='nested_child']", "sub_child", text=True)
+        b = generate_instruction_dict("./div[@class='nested_child']", "child", text=True,children=[c])
+        a = generate_instruction_dict("//div[@class='nested_children']", "parent", text=True,children=[b])
+        self.assertEqual(len(b["children"]),1)
+        self.assertEqual(len(c["children"]),0)
+        self.assertEqual(len(a["children"]), 1)
+        self.assertEqual(len(a["children"][0]["children"]),1)
+        self.assertEqual(len(a["children"][0]["children"][0]["children"]),0)
+        instr = Instruction(**a)
+
+        self.assertEqual(instr.getName(), "parent")
+        self.assertEqual(len(instr._children), 1)
+        self.assertEqual(instr._children[0].getName(),"child")
+        self.assertEqual(instr._children[0]._children[0].getName(),"sub_child")
+
+        worked, returned = instr(self.complex_html)
+        self.assertTrue(worked)
+        self.assertDictEqual(returned, {
+            'result_1': {
+                'children'  : [{
+                    'child_1': {
+                        'children'    : [{'sub_child_1': {'sub_child': 'Sub Child', 'children': [], 'num_children': 0}}], 'child': 'Child',
+                        'num_children': 1
+                    }
+                }], 'parent': 'Parent', 'num_children': 1
             }
         })

@@ -1,0 +1,27 @@
+name: ebay_api_config
+
+# Trading API Sandbox - https://www.x.com/developers/ebay/products/trading-api
+api.sandbox.ebay.com:
+    compatability: 719
+    appid:GabrielO-te-SBX-82466ad44-a9631a96
+    certid: SBX-2466ad44b6cf-0b97-4362-bdcc-6b73
+    devid: 29ed841b-f7ab-4d31-b7ed-3b9050e8a24f
+    token: SBX-2466ad44b6cf-0b97-4362-bdcc-6b73	
+
+# Trading API - https://www.x.com/developers/ebay/products/trading-api
+api.ebay.com:
+    compatability: 719
+    appid: GabrielO-Flipper-PRD-6246ab075-45501e29	
+    certid: PRD-246ab075c3d8-fcd4-4db2-87d7-4f63
+    devid: 0305d723-14c9-4024-be76-5e9339ed6aa2
+    token: AgAAAA**AQAAAA**aAAAAA**iITRWA**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6ABmIemC5SDoQ+dj6x9nY+seQ**b6oDAA**AAMAAA**2iqZmFnZ92Aa22EJXO2o91pmKMy7xjp6NvIJSJIC5yQEfpNPRRlR4CA00gWn4kB7Df+j/KzRDzu8APPS7UuV/y9vclI9u17lgoSKTKXTYgaRcMYjTLF2NFNrxYRFxDx7LxasH+8RnWuabkORml6JhQYdxZNvX68KO7rVMrfI0WTyA6822iFMQyboezWyreybIRJkscLu5Vw2QYCyZ4mQIZvRJa+MxDlKTTDX8ZyUKJ8zDUGThfk9A9/jK1z8ILQNejWf3x+bgDYc8oK9Sh1/ZK4RB4dHvaYWVOpLS4ID0/lUaaOwWopXP+Bmn1Jxbqw69aJmQ2DVlUtu2yHLz2xnWr0B7lfQ3iZkFx4USknexANNfB5zERhg86r018/4cHUkrr1/t2SsenLwwgXrosast1i6xJzj/frx9uGVWQYSBN3NJtSzQZaeIJFRpJs5ofafGAs/216SuN61A2FmqBtE5r+Pb2q9Q9kKHBNGIHJIu55hPI/mTyDGF6pTXjitK2HWLlXC6nMkZNoUujfMN976NMgJISQZiG9G5BOtAWuBCIgCH99rXeOxUsdBAF85Au/+LK0zikPLKmcGpKgSTew5tWCGDEb8yzuwIv78a2GvURtyRF6VaWDLGYlMVr6ObQWeqzPdDDrkiHpy9fq/Ay4mC0mwfdsRA6mc+gCFYdtLRmrfKohInYrUJxaJVAtsR6Q+cNPQg476N/PNrWN6+j15ntt5H8lUIXbElzE+5t32cQXNfGAafaH4LjDHRocLBScK
+
+# Finding API - https://www.x.com/developers/ebay/products/finding-api
+svcs.ebay.com:
+    appid: GabrielO-Flipper-PRD-6246ab075-45501e29
+    version: 1.0.0
+
+# Shopping API - https://www.x.com/developers/ebay/products/shopping-api
+open.api.ebay.com:
+    appid: GabrielO-Flipper-PRD-6246ab075-45501e29
+    version: 671

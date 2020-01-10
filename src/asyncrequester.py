@@ -6,82 +6,10 @@ from tornado.queues import Queue
 import time
 from tornado import httputil
 
-
-class AsyncRequester():
-
-    def __init__(self, destinations=None, transform=None, headers={}, max_clients=50, maxsize=50, connect_timeout=1200, request_timeout=600,
-            result_queue=None):
-
-        """Instantiate a tornado async http client to do multiple concurrent requests"""
-
-        if None in [destinations, transform]:
-            sys.stderr.write('You must pass both collection of URLS and a transform function')
-            raise SystemExit
-
-        self.max_clients = max_clients
-        self.maxsize = maxsize
-        self.connect_timeout = connect_timeout
-        self.request_timeout = request_timeout
-        self.result_queue = result_queue
-        AsyncHTTPClient.configure("tornado.simple_httpclient.SimpleAsyncHTTPClient", max_clients=self.max_clients)
-
-        self.http_client = AsyncHTTPClient()
-        self.queue = Queue(maxsize=maxsize)
-        self.destinations = destinations
-        self.transform = transform
-
-        self.headers = headers
-        self.read(self.destinations)
-        self.get()
-        self.loop = ioloop.IOLoop.current()
-        self.loop.spawn_callback(self.get)
-        self.loop.spawn_callback(self.get)
-        self.loop.spawn_callback(self.get)
-        self.join_future = self.queue.join()
-
-        def done(future):
-            self.loop.stop()
-
-        self.count = 1
-        self.join_future.add_done_callback(done)
-        self.loop.start()
-
-    @gen.coroutine
-    def read(self, destinations):
-        for url in destinations:
-            yield self.queue.put(url)
-
-    @gen.coroutine
-    def get(self):
-        couterino = 1
-        while True:
-            url = yield self.queue.get()
-            try:
-                request = HTTPRequest(url, connect_timeout=self.connect_timeout, request_timeout=self.request_timeout, method="GET",
-                                      headers=self.headers)
-            except Exception as e:
-                sys.stderr.write('Destination {0} returned error {1}'.format(url, str(e) + '\n'))
-
-            future = self.http_client.fetch(request)
-
-            def done_callback(future):
-                url = future.result().effective_url
-                try:
-                    body = future.result().body
-
-                    self.transform(body, url=url)
-                    self.count = self.count + 1
-                except Exception as e:
-                    print(e)
-                    print(url)
-                self.queue.task_done()
-
-            try:
-                couterino += 1
-                future.add_done_callback(done_callback)
-            except Exception as e:
-                sys.stderr.write(str(e))
-                self.queue.put(url)
+config = {
+    'proxy_host': '188.190.238.238',
+    'proxy_port': 8080
+}
 
 
 class CustomHTTPRequest(HTTPRequest):
@@ -155,8 +83,7 @@ class Scraper():
         self.connect_timeout = connect_timeout
         self.request_timeout = request_timeout
         self.to_return = []
-
-        self.http_client = AsyncHTTPClient()
+        self.http_client =AsyncHTTPClient()
         self.queue = Queue(maxsize=self.maxsize)
         self.func = func
         self.read(self.request_params)
@@ -185,8 +112,10 @@ class Scraper():
             body = request_param.get('body', None)
             dictKey = request_param['dictKey']
             # request_param['headers']['dictKey'] = dictKey
+
             request = CustomHTTPRequest(url, method=self.method, headers=request_param['headers'], body=body, connect_timeout=connect_timeout,
-                    request_timeout=request_timeout, auth_username=self.auth_username, auth_password=self.auth_password, key=dictKey)
+                                        request_timeout=request_timeout, auth_username=self.auth_username, auth_password=self.auth_password,
+                                        key=dictKey)
 
             def handle_response(response):
                 if not self.func:

@@ -2,7 +2,7 @@ from src.instructions import Instruction
 
 
 """
-Class for handling sets of instructions
+Class for handling sets of getListings
 """
 class InstructionSet:
     _instructions = []

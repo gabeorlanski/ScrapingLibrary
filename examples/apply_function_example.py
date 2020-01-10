@@ -27,10 +27,7 @@ if __name__ == "__main__":
     s = Scraper(cores=4, debug=True)
     import ast
 
-    links = [{
-                 'url'    : 'https://www.ebay.com/sch/i.html?_odkw=superlunary&_osacat=0&_ipg=200&_from=R40&_trksid=m570.l1313&_nkw=superlunary&_sacat=0',
-                 'headers': {}, 'dictKey': 'superlunary_test', "instructionSet":"getListings"
-             },
+    links = [
              {
                  'url'    : 'https://www.ebay.com/sch/i.html?_odkw=blank&_osacat=0&_ipg=200&_from=R40&_trksid=m570.l1313&_nkw=blank&_sacat=0',
                  'headers': {}, 'dictKey': 'blank_test', "instructionSet":"getListings"
@@ -38,13 +35,14 @@ if __name__ == "__main__":
              {
                  'url'    : 'https://www.ebay.com/sch/i.html?_odkw=starve&_osacat=0&_ipg=200&_from=R40&_trksid=m570.l1313&_nkw=starve&_sacat=0',
                  'headers': {}, 'dictKey': 'starve_test', "instructionSet":"getListings"
-             }]
+             }
+             ]
 
     # Using the function to generate the instruction dictionary
-    listing_title = generate_instruction_dict("./h3[@class='lvtitle']/a", "title", text=True)
+    listing_title = generate_instruction_dict("./h3[@class='lvtitle']/a", "title", text=True, backup_xpaths=[".//h3[@class='s-item__title']"])
     listing_price = generate_instruction_dict("./ul[@class='lvprices left space-zero']/li[@class='lvprice prc']/span[@class='bold']", "price",
                                               text=True, apply_function=ex_apply_function)  # passing the apply function to the generator
-    listings = generate_instruction_dict("//li[@class='sresult lvresult clearfix li shic']", "listings", children=[listing_title, listing_price], backup_xpaths=["//li[@class='sresult lvresult clearfix li']"], run_backups=True)
+    listings = generate_instruction_dict("//li[@class='sresult lvresult clearfix li shic']", "listings", children=[listing_title, listing_price], backup_xpaths=["//li[@class='sresult lvresult clearfix li']","//li[@class='s-item']"], run_backups=True)
 
     instructions = [listings]
 
